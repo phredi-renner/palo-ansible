@@ -1,0 +1,26 @@
+
+#[all:vars]
+#no all vars should be here. they should be in the group_vars/all.vars file
+
+
+[arista_vxlan]
+spine01 ansible_host=192.168.1.62
+spine02 ansible_host=192.168.1.75
+leaf01 ansible_host=192.168.1.71
+leaf02 ansible_host=192.168.1.72
+leaf03 ansible_host=192.168.1.73
+
+
+[pa_lab]
+pan-vm ansible_host=192.168.1.164
+#pan-vm2 ansible_host=192.168.1.247
+#pan-vm3 ansible_host=192.168.1.191
+#pan-vm4 ansible_host=192.168.199
+
+[ansible]
+baxterboy ansible_host=192.168.1.249
+
+[everything:children]
+pa_lab
+
+

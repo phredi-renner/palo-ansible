@@ -1,0 +1,49 @@
+---
+# This file should be encrypted and utilize Ansible Vault because it contains passwords.
+#    ansible-vault encrypt ./group_vars/all.yml
+#    ansible-vault view ./group_vars/all.yml
+#    ansible-vault decrypt ./group_vars/all.yml
+
+# Default connectivitiy variables
+ansible_user: "cisco"
+ansible_ssh_pass: "cisco"
+
+#ansible_user: "fdr"
+#ansible_ssh_pass: "thehip1"
+ansible_network_os: "ios"
+ansible_connection: "network_cli"
+
+# Backup Information
+# This represents the default location
+# More specific should be added in individual group_vars files
+backup:
+  backup_path: "../backups"
+  output_path: "../backups/backups_out"
+  backup_dir: "labs"
+
+# Global Config Variables
+ntp:
+  server1: 216.239.35.0
+
+# for radius
+radius:
+  r_src_int: vlan2
+  r_server_key: testing123
+  r_server_name: IDONTWANTPI
+  r_server_ip: 192.168.0.29
+  r_group_name: ITSFREE
+
+# SNMP
+snmp:
+  snmp_community: g00se
+  snmp_host:
+# Logging Servers
+logging:
+  l_server: 192.168.1.245
+
+# Classic provider details for use with aireos
+
+legacy_credentials:
+  host: "{{ inventory_hostname }}"
+  username: "username"
+  password: "password"

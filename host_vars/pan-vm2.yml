@@ -1,0 +1,127 @@
+# Host Vars for Palo Alto-2 Lab Firewall 
+---
+palo_provider:
+  api_key: LUFRPT0xTFljODBwUDdVTlFKdWtRVENpeTFMTkJ3YVU9eHROTFBBU0d1Wm1aSy9xWXhobm8xN1plQTJEb3U5TGVGZFc4VVBGZVFNdlZ3alhBZXk5U25PLzdzdlp5d1lRTQ==
+  ip_address: "{{ ansible_host }}"
+
+hostname: 'PA-2-FW'
+
+zones:
+  - zone: 'INSIDE'
+    mode: 'layer3'
+  - zone: 'OUTSIDE'
+    mode: 'layer3'
+  - zone: 'USERS'
+    mode: 'layer3'
+
+interfaces:
+  - if_name: 'ethernet1/1'
+    mode: 'layer3'
+    ip: 'circuit-provider-int'
+    zone_name: "OUTSIDE"
+    comment: 'Outside Interface'
+  - if_name: 'ethernet1/2'
+    mode: 'layer3'
+    ip: 'inside-transit'
+    zone_name: "INSIDE"
+    comment: 'Inside Interface'
+  - if_name: 'ethernet1/3'
+    mode: 'layer3'
+    ip: 'user-transit'
+    zone_name: 'USERS'
+    comment: 'User Interface'
+
+address_objects:
+  - name: 'circuit-provider-int'
+    ip: '70.70.70.2/24'
+    desc: 'Outside Interface'
+  - name: 'inside-transit'
+    ip: '20.5.5.1/24'
+    desc: 'INSIDE network'
+  - name: 'user-transit'
+    ip: '20.6.6.1/24'
+    desc: 'Transit network to USER segments'
+  - name: 'static_next_hop-INSIDE'
+    ip: '20.5.5.2/32'
+    desc: 'next hop to INSIDE segments'
+  - name: 'circuit-provider-addr'
+    ip: '70.70.70.1/32'
+    desc: 'Circuit Provider Next Hop Address'
+  - name: 'FW-3-vpn-peer'
+    ip: '70.70.70.3/32'
+    desc: 'VPN Peer Address'
+
+bgp:
+  as_local: '65002'
+  rtr_id: '70.70.70.2'
+  peer_group_name: 'peer-group-1'
+  local_int: 'ethernet1/1'
+# Local IP only seems to work when refrencing an address object
+  local_ip: 'circuit-provider-int'
+
+bgp_peer_list:
+  - peer_name: 'PA-1-fw'
+    peer_ip: '70.70.70.1' 
+    peer_as: '65001'
+    peer_group_name: 'adv_local_as_only'
+
+static_routes:
+  - name: default-route
+    destination: '0.0.0.0/0'
+    nexthop: 'circuit-provider-addr'
+  - name: two-dot-one
+    destination: '2.2.1.0/24'
+    nexthop: 'static_next_hop-INSIDE'
+  - name: two-dot-two
+    destination: '2.2.2.0/24'
+    nexthop: 'static_next_hop-INSIDE'
+  - name: two-dot-three
+    destination: '2.2.3.0/24'
+    nexthop: 'static_next_hop-INSIDE'
+  - name: two-dot-four
+    destination: '2.2.4.0/24'
+    nexthop: 'static_next_hop-INSIDE'
+  - name: two-dot-five
+    destination: '2.2.5.0/24'
+    nexthop: 'static_next_hop-INSIDE'
+
+
+
+# VPN config
+vpn_peer_address_obj:
+  - name: 'FW-3-vpn-peer'
+    ip: '70.70.70.3/32'
+    desc: 'VPN Peer Address'
+# List the peer gateways
+vpn_ike:
+ - name: 'IKEGW-FW3'
+   state: 'present'
+   version: 'ikev1'
+   interface: 'ethernet1/1'
+   #enable_passive_mode: True
+   #enable_liveness_check: True
+   liveness_check_interval: '5'
+   peer_ip_value: 'FW-3-vpn-peer'
+   pre_shared_key: 'CHANGEME'
+   ikev1_crypto_profile: 'default'
+   local_ip_address: 'circuit-provider-int'
+
+vpn_tunnel:
+-  name: 'IPSecTunnel-to-FW3'
+   tunnel_interface: 'tunnel.3'
+   ak_ike_gateway: 'IKEGW-FW3'
+   ak_ipsec_crypto_profile: 'ipsec-vpn-crypto-profile'
+
+vpn_proxyid:
+- name: IPsec-ProxyID1
+  tunnel_name: 'IPSecTunnel-to-FW3'
+  local: '192.168.71.0/24'
+  remote: '172.16.70.0/24'
+- name: IPsec-ProxyID2
+  tunnel_name: 'IPSecTunnel-to-FW3'
+  local: '192.168.72.0/24'
+  remote: '172.16.70.0/24'
+- name: IPsec-ProxyID3
+  tunnel_name: 'IPSecTunnel-to-FW3'
+  local: '192.168.73.0/24'
+  remote: '172.16.70.0/24'

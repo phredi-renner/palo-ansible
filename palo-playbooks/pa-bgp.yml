@@ -1,0 +1,33 @@
+---
+# tested and works FDR
+
+- name: Palo Alto Playbook
+  hosts: palo
+  connection: local
+
+  collections:
+    - paloaltonetworks.panos
+
+  tasks: 
+
+  - name: Configure and enable BGP
+    panos_bgp:
+      provider: '{{ palo_provider }}'
+      router_id: '1.1.1.1'
+      local_as: '64512'
+
+  - name: Create BGP Peer
+    panos_bgp_peer:
+      provider: '{{ palo_provider }}'
+      peer_group: 'peer-group-1'
+      name: 'peer-1'
+      enable: true
+      local_interface: 'ethernet1/1'
+      local_interface_ip: '192.168.1.1'
+      peer_address_ip: '10.1.1.1'
+      peer_as: '64512'
+      commit: true
+
+  - name: Commit 
+    panos_commit_firewall:
+      provider: '{{ palo_provider }}'

@@ -1,0 +1,35 @@
+---
+
+adminusername: fdr
+adminpassword: P455word!
+
+#These are used for scripts that need to generate a key rather than use the key from host_vars
+#comment thisa out for AIP
+#MY LAB
+ansible_ssh_user: admin
+ansible_ssh_pass: paadmin
+ansible_connection: "local"
+ansible_network_os: "panos"
+
+#backup:
+#  backup_path: "./../../backups"
+#  output_path: "../backups/backups_out"
+#  backup_dir: "proximo"
+
+dns_primary_ip: "8.8.8.8"
+dns_secondary_ip: "2.2.2.2"
+panorama_primary_ip: "192.168.50.50"
+panorama_secondary_ip: "4.4.4.4"
+ntp_server_primary_ip: "5.5.5.5"
+ntp_server_secondary_ip: "6.6.6.6"
+
+bgp_peer_groups:
+  - name: 'ibgp-peers'
+    type: 'ibgp'
+    export_nexthop: use-self
+  - name: 'adv_local_as_only'
+    type: 'ebgp'
+    export_nexthop: resolve
+  - name: 'advertise_all'
+    type: 'ebgp'
+    export_nexthop: resolve

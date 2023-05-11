@@ -1,0 +1,155 @@
+---
+# What we are trying to do:
+#  Look at all security rules and apply a Security Profile Group to all policies with destination defined
+#  in the dstzone vars.
+
+- name: Palo Alto Playbook
+  hosts: palo
+  connection: local
+
+# Modify this for the correct zone to either match or ignore based on setting at bottom
+  vars:
+    dstzone: 'Trust-L3'
+
+  roles:
+    - role: PaloAltoNetworks.paloaltonetworks
+
+  tasks:
+
+# First create the SECURITY PROFILE GROUPS. Unforutnately there isn't a module to create
+# the infividual profiles so that has to be done manually through the GUI.
+  - name: Create INBOUND security profile group
+    panos_pg:
+      provider: '{{ palo_provider }}'
+      pg_name: "Alert-ALL-Inbound"
+      data_filtering: 
+    #  file_blocking: 'Alert-ALL-FileBlock'
+    #  spyware: 'Alert-ALL-AntiSpyware'
+      url_filtering:
+    #  virus: 'default'
+    #  vulnerability: 'Alert-ALL-Vulnerability'
+    #  wildfire: Alert-ALL-Wildfire
+      state: 'present'
+
+  - name: Create OUTBOUND security profile group
+    panos_pg:
+      provider: '{{ palo_provider }}'
+      pg_name: "Alert-ALL-Outbound"
+      data_filtering: 
+    #  file_blocking: 'Alert-ALL-FileBlock'
+    #  spyware: 'Alert-ALL-AntiSpyware'
+    #  url_filtering: 'Outbound-Alert-ALL-URL'
+    #  virus: 'default'
+    #  vulnerability: 'Alert-ALL-Vulnerability'
+    #  wildfire: Alert-ALL-Wildfire
+      state: 'present'
+
+###########
+  - name: Get a list of all security rules
+    panos_security_rule_facts:
+      provider: '{{ palo_provider }}'
+      all_details: yes
+    register: sec_rules
+  
+#  - debug:
+#      msg: '{{ sec_rules.policy }}'
+############
+  - name: Modify for all rules NOT Matching the zone {{ dstzone }}
+    panos_security_rule:
+      provider: '{{ palo_provider }}'
+      state: '{{ item.state | default(omit, true) }}'
+      action: '{{ item.action | default(omit, true) }}'
+      antivirus: '{{ item.antivirus | default(omit, true) }}'
+      application: '{{ item.application | default(omit, true) }}  '
+      category: '{{ item.category | default(omit, true) }}  '
+      data_filtering: '{{ item.data_filtering | default(omit, true) }}'
+      description: '{{ item.description | default(omit, true) }}'
+      destination_ip: '{{ item.destination_ip | default(omit, true) }}'
+      destination_zone: '{{ item.destination_zone | default(omit, true) }}  '
+      disable_server_response_inspection: '{{ item.disable_server_response_inspection | default(omit, true) }}'
+      disabled: '{{ item.disabled | default(omit, true) }}'
+      file_blocking: '{{ item.file_blocking | default(omit, true) }}'
+      #group_profile: '{{ item.group_profile | default(omit, true) }}'
+      # This is getting manually set, everything else is using what is currently existing in that security policy
+      # Must enter the name of the group profile as it exists.
+   #   group_profile: 'Alert-ALL-Inbound'
+      group_tag: '{{ item.group_tag | default(omit, true) }}'
+      hip_profiles: '{{ item.hip_profiles | default(omit, true) }}'
+      icmp_unreachable: '{{ item.icmp_unreachable | default(omit, true) }}'
+      log_end: '{{ item.log_end | default(omit, true) }}'
+      log_setting: '{{ item.log_setting | default(omit, true) }}'
+      log_start: '{{ item.log_start | default(omit, true) }}'
+      negate_destination: '{{ item.negate_destination | default(omit, true) }}'
+      negate_source: '{{ item.negate_source | default(omit, true) }}'
+      negate_target: '{{ item.negate_target | default(omit, true) }}'
+      rule_name: '{{ item.rule_name }}'
+      schedule: '{{ item.schedule | default(omit, true) }}'
+      service: '{{ item.service | default(omit, true) }}  '
+      source_ip: '{{ item.source_ip | default(omit, true) }}  '
+      source_user: '{{ item.source_user| default(omit, true) }}  '
+      source_zone: '{{ item.source_zone | default(omit, true) }}  '
+      spyware: '{{ item.spyware | default(omit, true) }}'
+      tag_name: '{{ item.tag_name | default(omit, true) }}'
+      target: '{{ item.target | default(omit, true) }}'
+      url_filtering: '{{ item.url_filtering | default(omit, true) }}'
+      vulnerability: '{{ item.vulnerability | default(omit, true) }}'
+      wildfire_analysis: '{{ item.wildfire_analysis | default(omit, true) }}'
+  
+    loop: '{{ sec_rules.policy }}'
+    loop_control:
+      label: '{{ item.rule_name }}'
+    when:
+      - item.destination_zone
+      # skip what is set in dstzone
+      - dstzone not in item.destination_zone
+
+
+########
+
+  - name: Modify for all rules Matching the zone {{ dstzone }}
+    panos_security_rule:
+      provider: '{{ palo_provider }}'
+      state: '{{ item.state | default(omit, true) }}'
+      action: '{{ item.action | default(omit, true) }}'
+      antivirus: '{{ item.antivirus | default(omit, true) }}'
+      application: '{{ item.application | default(omit, true) }}  '
+      category: '{{ item.category | default(omit, true) }}  '
+      data_filtering: '{{ item.data_filtering | default(omit, true) }}'
+      description: '{{ item.description | default(omit, true) }}'
+      destination_ip: '{{ item.destination_ip | default(omit, true) }}'
+      destination_zone: '{{ item.destination_zone | default(omit, true) }}  '
+      disable_server_response_inspection: '{{ item.disable_server_response_inspection | default(omit, true) }}'
+      disabled: '{{ item.disabled | default(omit, true) }}'
+      file_blocking: '{{ item.file_blocking | default(omit, true) }}'
+      #group_profile: '{{ item.group_profile | default(omit, true) }}'
+      # This is getting manually set, everything else is using what is currently existing in that security policy
+      # Must enter the name of the group profile as it exists.
+    #  group_profile: 'Alert-ALL-Outbound'
+      group_tag: '{{ item.group_tag | default(omit, true) }}'
+      hip_profiles: '{{ item.hip_profiles | default(omit, true) }}'
+      icmp_unreachable: '{{ item.icmp_unreachable | default(omit, true) }}'
+      log_end: '{{ item.log_end | default(omit, true) }}'
+      log_setting: '{{ item.log_setting | default(omit, true) }}'
+      log_start: '{{ item.log_start | default(omit, true) }}'
+      negate_destination: '{{ item.negate_destination | default(omit, true) }}'
+      negate_source: '{{ item.negate_source | default(omit, true) }}'
+      negate_target: '{{ item.negate_target | default(omit, true) }}'
+      rule_name: '{{ item.rule_name }}'
+      schedule: '{{ item.schedule | default(omit, true) }}'
+      service: '{{ item.service | default(omit, true) }}  '
+      source_ip: '{{ item.source_ip | default(omit, true) }}  '
+      source_user: '{{ item.source_user| default(omit, true) }}  '
+      source_zone: '{{ item.source_zone | default(omit, true) }}  '
+      spyware: '{{ item.spyware | default(omit, true) }}'
+      tag_name: '{{ item.tag_name | default(omit, true) }}'
+      target: '{{ item.target | default(omit, true) }}'
+      url_filtering: '{{ item.url_filtering | default(omit, true) }}'
+      vulnerability: '{{ item.vulnerability | default(omit, true) }}'
+      wildfire_analysis: '{{ item.wildfire_analysis | default(omit, true) }}'
+  
+    loop: '{{ sec_rules.policy }}'
+    loop_control:
+      label: '{{ item.rule_name }}'
+    when:
+      - item.destination_zone
+      - dstzone in item.destination_zone

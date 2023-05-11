@@ -1,0 +1,33 @@
+---
+# just looking for the facts
+
+- name: Palo Alto Playbook
+  hosts: palo
+  connection: local
+
+  #collections:
+  #  - paloaltonetworks.panos
+  collections:
+      - paloaltonetworks.panos
+
+  tasks:
+
+  - name: Get FACTS
+    panos_facts:
+      provider: '{{ palo_provider }}'
+      gather_subset:
+        - config
+    register: all
+  
+  - debug:
+      msg: '{{ all }}'
+############
+  - name: Get a list of all security rules
+    panos_security_rule_facts:
+      provider: '{{ palo_provider }}'
+      all_details:
+    register: sec_rules
+  
+  - debug:
+      msg: '{{ sec_rules }}'
+

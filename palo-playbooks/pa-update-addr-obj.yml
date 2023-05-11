@@ -1,0 +1,44 @@
+- name: Network Playbook
+  hosts: palo
+  connection: local
+  gather_facts: false
+
+  vars:
+    rmadr: 'ntp2'
+
+  roles:
+    - role: PaloAltoNetworks.paloaltonetworks
+
+  tasks:
+#  - name: Grab auth creds
+#    include_vars: 'vars.yml'
+#    no_log: 'yes'
+
+  - name: Get all address groups and their config
+    panos_object_facts:
+      provider: '{{ palo_provider }}'
+      object_type: 'address-group'
+      name_regex: '.*'
+    register: ag
+
+  - name: Remove address object from all groups
+    panos_address_group:
+      provider: '{{ palo_provider }}'
+      name: '{{ item.name }}'
+      description: '{{ item.description | default(omit, true) }}'
+      static_value: '{{ item.static_value | difference([rmadr]) }}'
+      tag: '{{ item.tag | default(omit, true) }}'
+      commit: false
+    loop: '{{ ag.objects }}'
+    loop_control:
+      label: '{{ item.name }}'
+    when:
+      - item.static_value
+      - rmadr in item.static_value
+
+  - name: Finally remove the address object
+    panos_address_object:
+      provider: '{{ palo_provider }}'
+      name: rmadr
+      state: 'absent'
+      commit: false

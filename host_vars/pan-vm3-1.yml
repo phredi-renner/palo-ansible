@@ -1,0 +1,37 @@
+# Host Vars for Palo Alto-1 Lab Firewall 
+---
+palo_provider:
+  api_key: LUFRPT1VYjV2UFNLMTB1WllSRlhiMHlLR0JkckpwUGs9eHROTFBBU0d1Wm1aSy9xWXhobm8xNVZVdUNoLzhJdDA1RHdMMDg4bVhURXZIYW4vcGFUSWtsWHl5SU45bHViZg==
+  ip_address: "{{ ansible_host }}"
+
+hostname: 'PA-3-FW'
+ip:
+  ethernet1: '70.70.70.3/24'
+  ethernet2: '30.5.5.1/24'
+  ethernet3: '30.6.6.1/24'
+
+outside_add_obj:
+  name: 'circuit-provider-int'
+  ip: '70.70.70.3/24'
+  desc: 'Outside Interface'
+
+cktproviderIP_add_obj:
+  name: 'circuit-provider-addr'
+  ip: '70.70.70.1/32'
+  desc: 'Provider IP Address'   
+
+bgp:
+  as_local: '65003'
+  rtr_id: '70.70.70.3'
+  peer_group_name: 'peer-group-1'
+  peer_name: 'pa-1-fw'
+  local_int: 'ethernet1/1'
+# Local IP only seems to work when refrencing an address object
+  local_ip: 'circuit-provider-int'
+  peer_ip: '70.70.70.1'
+  peer_as: '65001'
+
+default_route:
+  name: 'Default-Route'
+  destination: '0.0.0.0/0'
+  nexthop: 'circuit-provider-addr'

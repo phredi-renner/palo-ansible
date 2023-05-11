@@ -1,0 +1,28 @@
+---
+# What we are trying to do:
+#  Create a Security Profile group using existing profiles for all features
+
+- name: Palo Alto Playbook
+  hosts: palo
+  connection: local
+
+  roles:
+    - role: PaloAltoNetworks.paloaltonetworks
+
+  tasks:
+
+###########
+  
+  - name: setup security profile group
+    panos_pg:
+      provider: '{{ palo_provider }}'
+      pg_name: "pg-default"
+      data_filtering: 
+      file_blocking: 'Alert-ALL-FileBlock'
+      spyware: 'Alert-ALL-AntiSpyware'
+      url_filtering: 'Outbound-Alert-ALL-URL'
+      virus: 'default'
+      vulnerability: 'Alert-ALL-Vulnerability'
+      wildfire: Alert-ALL-Wildfire
+      state: 'present'
+      

@@ -1,0 +1,27 @@
+# Pre Provision Playbook to get base config on a Palo Alto Firewall
+# works..... but need to update some things
+---
+
+- name: Palo Alto Playbook
+  hosts: palo
+  connection: local
+
+  collections:
+    - paloaltonetworks.panos
+
+  tasks: 
+
+# Create static Default route via Provider
+    - name: Create route 'Default-Route'
+      panos_static_route:
+        provider: '{{ palo_provider }}'
+        name: '{{ default_route.name }}'
+        virtual_router: 'default'
+        destination: '{{ default_route.destination }}'
+        nexthop: '{{ default_route.nexthop }}'
+
+
+
+    - name: Commit 
+      panos_commit_firewall:
+        provider: '{{ palo_provider }}'

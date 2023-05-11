@@ -1,0 +1,82 @@
+---
+# This playbook will connect to every device in the hosts file and take a backup
+# just pulls the XML data
+# It will then  extract the running config from each devices and save them locally in ./config/
+# It also pulls the API key 
+
+# Moved destination to hostname backup folder
+# also would like to change the filename to use full timestamp
+# backup locaiton info pulled from group_vars/all.yml
+# Modify hosts at line 37 to be an "all" group in the customer inventory. This group name should
+#  should have a group_vars file that defines the backup directory as well as username/password
+
+- hosts: localhost
+
+  tasks:
+
+    - name: Get ansible date/time facts
+      setup:
+        filter: "ansible_date_time"
+        gather_subset: "!all"
+
+    - name: Store DTG as fact
+      set_fact:
+        DTG: "{{ ansible_date_time.date }}"
+
+ #   - name: Create Directory {{hostvars.localhost.DTG}}
+ #     file:
+ #      path: /home/fdr/backups/{{hostvars.localhost.DTG}}
+ #      state: directory
+
+    - name: ensure backup folder is created
+      file:
+        path: "{{ backup.backup_path }}/{{backup.backup_dir}}"
+        state: directory
+      run_once: yes
+
+- name: Pull Configuration from Palo Alto Firewalls
+  hosts: pa_lab
+
+  tasks:
+
+    - name: Create Backup directory
+      connection: local
+      file:
+        path: "{{ backup.backup_path }}/{{backup.backup_dir}}/{{ inventory_hostname }}"
+        state: directory
+
+    - name: Generate API Key
+      connection: local
+      check_mode: no
+      uri:
+        validate_certs: no
+        url: 'https://{{ansible_host}}/api/?type=keygen&user={{ansible_ssh_user}}&password={{ansible_ssh_pass}}'
+        return_content: yes
+        method: GET
+      register: key_string
+
+    - name: Extract API Key from XML Output
+      connection: local
+      xml:
+        xmlstring: '{{key_string.content}}'
+        content: 'text'
+        xpath: '/response/result/key'
+      register: key_list
+
+    - name: Backup configuration from PAN Equipment
+      connection: local
+      check_mode: no
+      uri:
+        validate_certs: no
+        url: "https://{{ansible_host}}/api/?type=config&action=show&key={{key_list.matches[0].key}}"
+        return_content: yes
+        method: GET
+      register: configuration_string
+  
+    - name: Remove XML Header and Save file in {{ backup.backup_path }}/{{backup.backup_dir}}/{{ inventory_hostname }}
+      connection: local
+      check_mode: no
+      copy:
+        content: "{{configuration_string['content']  | regex_replace('<response.*<result>') | regex_replace('</result></response>')}}"
+        dest: '{{ backup.backup_path }}/{{backup.backup_dir}}/{{ inventory_hostname }}/{{ inventory_hostname }}-config.xml'
+ 

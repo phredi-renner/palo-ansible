@@ -1,0 +1,64 @@
+# Host Vars for Palo Alto-2 Lab Firewall 
+---
+palo_provider:
+  api_key: LUFRPT0xTFljODBwUDdVTlFKdWtRVENpeTFMTkJ3YVU9eHROTFBBU0d1Wm1aSy9xWXhobm8xN1plQTJEb3U5TGVGZFc4VVBGZVFNdlZ3alhBZXk5U25PLzdzdlp5d1lRTQ==
+  ip_address: "{{ ansible_host }}"
+
+hostname: 'PA-2-FW'
+ip:
+  ethernet1: '70.70.70.2/24'
+  ethernet2: '22.5.5.1/24'
+  ethernet3: '22.6.6.1/24' 
+
+address_objects:
+  - name: 'circuit-provider-int'
+    ip: '70.70.70.2/24'
+    desc: 'Outside Interface'
+  - name: 'circuit-provider-addr'
+    ip: '70.70.70.1/32'
+    desc: 'Provider IP Address'
+  - name: 'static_next_hop'
+    ip: '22.5.5.2/32'
+    desc: 'a place to have for a next hop'
+
+outside_add_obj:
+  name: 'circuit-provider-int'
+
+cktproviderIP_add_obj:
+  name: 'circuit-provider-addr' 
+
+bgp:
+  as_local: '65002'
+  rtr_id: '70.70.70.2'
+  peer_group_name: 'peer-group-1'
+  local_int: 'ethernet1/1'
+# Local IP only seems to work when refrencing an address object
+  local_ip: 'circuit-provider-int'
+
+bgp_peer_list:
+  - peer_name: 'PA-1-fw'
+    peer_ip: '70.70.70.1' 
+    peer_as: '65001'
+
+
+default_route:
+  name: 'Default-Route'
+  destination: '0.0.0.0/0'
+  nexthop: 'circuit-provider-addr'
+
+static_routes:
+  - name: two-dot-one
+    destination: '2.2.1.0/24'
+    nexthop: 'static_next_hop'
+  - name: two-dot-two
+    destination: '2.2.2.0/24'
+    nexthop: 'static_next_hop'
+  - name: two-dot-three
+    destination: '2.2.3.0/24'
+    nexthop: 'static_next_hop'
+  - name: two-dot-four
+    destination: '2.2.4.0/24'
+    nexthop: 'static_next_hop'
+  - name: two-dot-five
+    destination: '2.2.5.0/24'
+    nexthop: 'static_next_hop'

@@ -1,0 +1,107 @@
+# Provision playbook to configure IPSec VPNs on a Palo Alto Firewall
+# This includes creating:
+#   - necessary address objects
+#   - tunnel interface
+#   - IPSec Crypto profile
+#   - IKE Gateway
+#   - IPSec tunnel
+#   - ProxyIDs
+# Data is contained in a uniquie host_vars file for each device to be configured.
+# General use data is contained in the palo.yml group_vars file
+# 
+
+---
+
+- name: Palo Alto Playbook
+  hosts: palo
+  connection: local
+
+  collections:
+    - paloaltonetworks.panos
+
+  tasks: 
+
+
+# Create required address objects
+# Create address objects
+    - name: Create VPN Address Objects from list in host_vars
+      panos_address_object:
+        provider: '{{ palo_provider }}'
+        name: '{{ item.name }}'
+        value: '{{ item.ip }}'
+        description: '{{ item.desc }}'
+      with_items:
+        - '{{ vpn_peer_address_obj }}'
+# Create Tunnel Interface
+    - name: Create appropriate tunnel interfaces
+      panos_tunnel:
+        provider: '{{ palo_provider }}'
+        if_name: '{{ item.tunnel_interface }}'
+        comment: '{{ item.name }}'
+        vr_name: 'default'
+        zone_name: 'VPN'
+      with_items:
+        - "{{ vpn_tunnel }}"
+#Create IPSec Crypto Profile
+    - name: create crypto profile
+      panos_ipsec_profile:
+        provider: '{{ palo_provider }}'
+        state: 'present'
+        name: 'ipsec-vpn-crypto-profile'
+        dh_group: 'group2'
+        esp_authentication: 'sha1'
+        esp_encryption: 
+          - 'aes-128-cbc'
+          - '3des'
+          - 'des'
+        lifetime_seconds: '3600'
+
+## Create Gateway
+    - name: Add IKE gateway config to the firewall
+      panos_ike_gateway:
+        provider: '{{ palo_provider }}'
+        state: '{{ item.state }}'
+        name: '{{ item.name }}'
+        version: '{{ item.version }}'
+        interface: '{{ item.interface }}'
+        enable_liveness_check: True
+        liveness_check_interval: '{{ item.liveness_check_interval }}'
+        peer_ip_value: '{{ item.peer_ip_value }}'
+        pre_shared_key: '{{ item.pre_shared_key }}'
+        ikev1_crypto_profile: '{{ item.ikev1_crypto_profile }}'
+        local_ip_address: '{{ item.local_ip_address }}'
+        local_ip_address_type: 'ip'
+        enable_passive_mode: no
+        enable_dead_peer_detection: yes
+        dead_peer_detection_interval: 30
+        dead_peer_detection_retry: 3
+      with_items:
+        - "{{ vpn_ike }}"
+
+    - name: Add IPSec tunnel to IKE gateway profile
+      panos_ipsec_tunnel:
+        provider: '{{ palo_provider }}'
+        name: '{{ item.name }}'
+        tunnel_interface: '{{ item.tunnel_interface }}'
+        ak_ike_gateway: '{{ item.ak_ike_gateway }}'
+        ak_ipsec_crypto_profile: '{{ item.ak_ipsec_crypto_profile }}'
+      with_items:
+        - "{{ vpn_tunnel }}"
+
+#Add the ProxyIDs
+    - name: Add IPSec IPv4 Proxy ID
+      panos_ipsec_ipv4_proxyid:
+        provider: '{{ palo_provider }}'
+        name: '{{ item.name }}'
+        tunnel_name: '{{ item.tunnel_name }}'
+        local: '{{ item.local }}'
+        remote: '{{ item.remote }}'
+      with_items:
+        - "{{ vpn_proxyid }}"
+
+#########################
+    - name: Commit 
+      panos_commit_firewall:
+        provider: '{{ palo_provider }}'
+
+

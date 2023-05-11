@@ -1,0 +1,100 @@
+# Pre Provision Playbook to get base config on a Palo Alto Firewall
+# This includes creating Zones, Interfaces, Address objects and BGP peering
+# Data is contained in a uniquie host_vars file for each device to be configured.
+# General use data is contained in the palo.yml group_vars file
+#
+# FDR 4/25/22
+# modify so redistribution profile is based on host_vars
+# to control resistribution
+#
+# What other things should be added for basic functionality?
+# How to test integration with Panorama?
+# Create basic rules
+# - security policy
+# - NAT
+# Create self signed cert
+---
+
+- name: Palo Alto Playbook
+  hosts: palo
+  connection: local
+
+  collections:
+    - paloaltonetworks.panos
+
+  tasks: 
+
+
+
+## Enable BGP 
+#    - name: Configure and enable BGP
+#      panos_bgp:
+#        provider: '{{ palo_provider }}'
+#        router_id: '{{ bgp.rtr_id }}'
+#        local_as: '{{ bgp.as_local }}'
+#        install_route: yes
+#  
+#    - name: Create BGP Peer Groups from list in palo.yml
+#      panos_bgp_peer_group:
+#        provider: '{{ palo_provider }}'
+#        name: '{{ item.name }}'
+#        enable: true
+#        aggregated_confed_as_path: true
+#        soft_reset_with_stored_info: false
+#        type: '{{ item.type }}'
+#        export_nexthop: '{{ item.export_nexthop }}'
+#      with_items:
+#        - "{{ bgp_peer_groups }}"
+#
+#    - name: Create BGP Peer List
+#      panos_bgp_peer:
+#        provider: '{{ palo_provider }}'
+#        peer_group: '{{ item.peer_group_name }}'
+#        name: '{{ item.peer_name }}'
+#        enable: true
+#        local_interface: '{{ bgp.local_int }}'
+#        local_interface_ip: '{{ bgp.local_ip }}'
+#        peer_address_ip: '{{ item.peer_ip }}'
+#        peer_as: '{{ item.peer_as }}'
+#      with_items:
+#        - "{{ bgp_peer_list }}"
+#
+## Redistirbution is needed for BGP peering
+## Redistribution Profile
+#    - name: Create Redistribution Profile
+#      panos_redistribution:
+#        provider: '{{ palo_provider }}'
+#        name: 'redist-all'
+#        action: redist
+#        priority: 1
+#
+## Redistribution Rule
+#    - name: Create Redistribution Rule and apply
+#      panos_bgp_redistribute:
+#        provider: '{{ palo_provider }}'
+#        name: 'redist-all'
+#        enable: true
+
+# Export Filter
+    - name: Create Export Filter to allow only Local-AS originating routes
+      panos_bgp_policy_rule:
+        provider: '{{ palo_provider }}'
+        name: export-local-as
+        type: 'export'
+        enable: true
+        action: 'allow'
+        used_by: 'adv_local_as_only'
+        # Module fails without having a prefix
+        # So match for 'any'
+        address_prefix: 
+          - name: '0.0.0.0/0'
+            exact: false
+        # Match for a blank AS path which indicates it is local origination
+        match_as_path_regex: '^$'
+
+#########################
+    - name: Commit 
+      panos_commit_firewall:
+        provider: '{{ palo_provider }}'
+
+

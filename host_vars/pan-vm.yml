@@ -1,0 +1,110 @@
+# Host Vars for Palo Alto-1 Lab Firewall 
+---
+palo_provider:
+  api_key: LUFRPT1IcmpGczE4UzY3Y2VFRkEydkV5bXorTk1uNkk9eHROTFBBU0d1Wm1aSy9xWXhobm8xemZMT3BQclBTWnJHcGZFa2ZmNUlxKzRxMlB2d1Q3NWZOYWNCeTN1SFE4ag==
+  ip_address: "{{ ansible_host }}"
+
+hostname: 'PA-1-FW'
+
+# Identify all zones and their mode
+zones:
+  - zone: 'INSIDE'
+    mode: 'layer3'
+  - zone: 'OUTSIDE'
+    mode: 'layer3'
+  - zone: 'DMZ'
+    mode: 'layer3'
+  - zone: 'USERS'
+    mode: 'layer3'
+
+# Identify interfaces. Refrence Zones identified above.
+# IP addresses should refrence address objects that will be created
+interfaces:
+  - if_name: 'ethernet1/1'
+    mode: 'layer3'
+    ip: 'circuit-provider-int'
+    zone_name: "OUTSIDE"
+    comment: 'Outside Interface'
+  - if_name: 'ethernet1/2'
+    mode: 'layer3'
+    ip: 'inside-transit'
+    zone_name: "INSIDE"
+    comment: 'Inside Interface'
+  - if_name: 'ethernet1/3'
+    mode: 'layer3'
+    ip: 'user-transit'
+    zone_name: 'USERS'
+    comment: 'User Interface'
+  - if_name: 'ethernet1/4'
+    mode: 'layer3'
+    ip: 'dmz-interface'
+    zone_name: 'DMZ'
+    comment: 'DMZ Interface'
+
+# Idendify all address objects. Speficifally, add those used for interfaces and routing config.
+address_objects:
+  - name: 'circuit-provider-int'
+    ip: '70.70.70.1/24'
+    desc: 'Outside Interface'
+  - name: 'inside-transit'
+    ip: '10.5.5.1/24'
+    desc: 'INSIDE network'
+  - name: 'user-transit'
+    ip: '10.6.6.1/24'
+    desc: 'Transit network to USER segments'
+  - name: 'static_next_hop-INSIDE'
+    ip: '10.5.5.2/32'
+    desc: 'next hop to USER segments'
+  - name: 'circuit-provider-addr'
+    ip: '70.70.70.2/32'
+    desc: 'Circuit Provider Next Hop Address'
+  - name: 'dmz-interface'
+    ip: '10.10.10.1/24'
+    desc: 'gateway address for DMZ'    
+
+# BGP Configuration
+bgp:
+  as_local: '65001'
+  rtr_id: '70.70.70.1'
+  peer_group_name: 'peer-group-1'
+  local_int: 'ethernet1/1'
+# Local IP only seems to work when refrencing an address object
+  local_ip: 'circuit-provider-int'
+
+# BGP peer list can be one or more as requried
+bgp_peer_list:
+  - peer_name: 'PA-2-fw'
+    peer_ip: '70.70.70.2' 
+    peer_as: '65002'
+    peer_group_name: 'advertise_all'
+  - peer_name: 'PA-3-fw'
+    peer_ip: '70.70.70.3'
+    peer_as: '65003'
+    peer_group_name: 'adv_local_as_only'
+  - peer_name: 'PA-4-fw'
+    peer_ip: '70.70.70.4'
+    peer_as: '65004'
+    peer_group_name: 'adv_local_as_only'
+
+# Identify required static routes. Destination can refrence a address object created above
+# or explicit address/network with mask.
+# Next hop should refrence an address object created above.
+static_routes:
+  - name: default-rotue
+    destination: '0.0.0.0/0'
+    nexthop: 'circuit-provider-addr'
+  - name: one-dot-one
+    destination: '1.1.1.0/24'
+    nexthop: 'static_next_hop-INSIDE'
+  - name: one-dot-two
+    destination: '1.1.2.0/24'
+    nexthop: 'static_next_hop-INSIDE'
+  - name: one-dot-three
+    destination: '1.1.3.0/24'
+    nexthop: 'static_next_hop-INSIDE'
+  - name: one-dot-four
+    destination: '1.1.4.0/24'
+    nexthop: 'static_next_hop-INSIDE'
+  - name: one-dot-five
+    destination: '1.1.5.0/24'
+    nexthop: 'static_next_hop-INSIDE'
