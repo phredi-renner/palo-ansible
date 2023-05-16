@@ -8,8 +8,6 @@
 ansible_user: "cisco"
 ansible_ssh_pass: "cisco"
 
-#ansible_user: "fdr"
-#ansible_ssh_pass: "thehip1"
 ansible_network_os: "ios"
 ansible_connection: "network_cli"
 
